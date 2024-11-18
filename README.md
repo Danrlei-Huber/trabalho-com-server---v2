@@ -42,8 +42,3 @@ Antes de começar, você precisa ter o seguinte instalado:
     python src/client.py
 ```
 
-
-## Observações
-O sistema não implementa persistência de dados; todos os veículos são mantidos em memória apenas durante a execução do servidor.
-O cliente e o servidor usam sockets TCP para se comunicar, com mensagens formatadas manualmente usando o caractere | como delimitador.
-
