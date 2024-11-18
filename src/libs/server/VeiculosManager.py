@@ -1,8 +1,10 @@
-
+import Pyro5
+import Pyro5.core
+import Pyro5.server
 from libs.server import veiculos_data
 
-
-class VeiculosManager:
+@Pyro5.server.expose
+class VeiculosManager(object):
     def __init__(self):
         self.veiculos = veiculos_data.get_veiculos()
 
@@ -20,13 +22,7 @@ class VeiculosManager:
     def read(self, id_veiculo):
         veiculo = self.veiculos.get(id_veiculo)
         if veiculo:
-            return (
-                f"Veículo encontrado:\n"
-                f"Marca: {veiculo['marca']}\n"
-                f"Modelo: {veiculo['modelo']}\n"
-                f"Ano: {veiculo['ano']}\n"
-                f"Preço: R${veiculo['preco']:.2f}"
-            )
+            return veiculo
         return "Veículo não encontrado."
 
     def update(self, id_veiculo, marca=None, modelo=None, ano=None, preco=None):
@@ -52,15 +48,13 @@ class VeiculosManager:
     def read_all(self):
         if not self.veiculos:
             return "Nenhum veículo encontrado."
-        lista_veiculos = [
-            (
-                f"ID: {id_veiculo} | "
-                f"Marca: {v['marca']} | "
-                f"Modelo: {v['modelo']} | "
-                f"Ano: {v['ano']} | "
-                f"Preço: R${v['preco']:.2f}"
-            )
-            for id_veiculo, v in self.veiculos.items()
-        ]
-        return "\n".join(lista_veiculos)
+        
+        return self.veiculos
+    
+    def __to_int(number):
+        try:
+            id_veiculo = int(id_veiculo)
+        except ValueError:
+            print("ID inválido. Deve ser um número inteiro.")
+        
 

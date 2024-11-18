@@ -1,68 +1,77 @@
-import socket
-import logging
-from libs.client.crud_client import CrudClient
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-def start_coneect(host, port):
-    host = 'localhost'
-    porta = 5000
-    
-    cliente_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    cliente_socket.connect((host, porta))
-    return cliente_socket
+import Pyro5.api
+import Pyro5.client
+import Pyro5.errors
+import sys
+from time import sleep
 
 def cliente():
-    cliente_socket = start_coneect('localhost', 50000)
-    crud_client = CrudClient()
+    try:
+        ns = Pyro5.api.locate_ns(host="localhost", port=9090)
+    except Pyro5.errors.CommunicationError:
+        print("Não foi possível localizar o servidor de nomes.")
+        sys.exit()
+
+    try:
+        uri = ns.lookup("VeiculosManager")  # Nome do objeto registrado no servidor de nomes
+        print(f"URI do objeto VeiculosManager: {uri}")
+    except Pyro5.errors.PyroError:
+        print("Não foi possível encontrar a URI do objeto VeiculosManager no servidor de nomes.")
+        sys.exit()
+    sleep(180)
+    veiculos_manager = Pyro5.client.Proxy(uri)
+
+    print("# Sistema de Gestão de Veículos #")
 
     while True:
-        print("# Programa de gestão #")
-        print("Operacoes disponiveis: ")
-        print("CREATE | READ | UPDATE | DELETE | READ-ALL | EXIT")
-        operacao = input(">> Digite a operação: ")
- 
-        comando = ""
-        match operacao:
-            case "CREATE":
-                comando = crud_client.create()
-            case "READ":
-                comando = crud_client.read()
-            case "UPDATE":
-                comando = crud_client.update()
-            case "DELETE":
-                comando = crud_client.delete()
-            case "READ-ALL":
-                comando = crud_client.read_all()
-            case "EXIT":
-                break
-            case "":
-                print("Imput incorreto, tente novamente.")
-            case _:
-                print("Opção inválida.")
-                continue
+        print("\nOperações disponíveis:")
+        print("1. CREATE - Adicionar um veículo")
+        print("2. READ - Buscar veículo por ID")
+        print("3. UPDATE - Atualizar dados de um veículo")
+        print("4. DELETE - Remover um veículo")
+        print("5. READ-ALL - Listar todos os veículos")
+        print("6. EXIT - Sair")
 
-        print(f"comando: {comando}")
-        if comando == "":
+        escolha = input("Escolha uma operação: ").strip()
+
+        if escolha == "1":
+            id_veiculo = int(input("ID do veículo: ").strip())
+            marca = input("Marca: ").strip()
+            modelo = input("Modelo: ").strip()
+            ano = input("Ano: ").strip()
+            preco = float(input("Preço: ").strip())
+            resposta = veiculos_manager.create(id_veiculo, marca, modelo, ano, preco)
+            print(resposta)
+
+        elif escolha == "2":
+            id_veiculo = int(input("ID do veículo: ").strip())
+            resposta = veiculos_manager.read(id_veiculo)
+            print(resposta)
+
+        elif escolha == "3":
+            id_veiculo = int(input("ID do veículo a atualizar: ").strip())
+            marca = input("Nova Marca: ").strip() or None
+            modelo = input("Novo Modelo: ").strip() or None
+            ano = input("Novo Ano: ").strip() or None
+            preco = input("Novo Preço: ").strip()
+            preco = float(preco) if preco else None
+            resposta = veiculos_manager.update(id_veiculo, marca, modelo, ano, preco)
+            print(resposta)
+
+        elif escolha == "4":
+            id_veiculo = int(input("ID do veículo a remover: ").strip())
+            resposta = veiculos_manager.delete(id_veiculo)
+            print(resposta)
+
+        elif escolha == "5":
+            resposta = veiculos_manager.read_all()
+            print(resposta)
+
+        elif escolha == "6":
+            print("Encerrando cliente.")
             break
 
-        msg = comando.encode()
-        tam = (len(msg)).to_bytes(2, 'big')
-        cliente_socket.send(tam + msg)
-
-        bytes_resp = cliente_socket.recv(2)
-        if not bytes_resp:
-            print("Conexão encerrada.")
-            break
-
-        tam_resp = int.from_bytes(bytes_resp, 'big')
-        resposta = cliente_socket.recv(tam_resp).decode()
-        print(f"Resposta do servidor: {resposta}")
-
-        if "Encerrando conexão." in resposta:
-            break
-
-    cliente_socket.close()
+        else:
+            print("Opção inválida. Tente novamente.")
 
 if __name__ == "__main__":
     cliente()
